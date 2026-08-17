@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Elder-Care Monitor</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            color: #1f2937;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        header {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+
+        header h1 {
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 22px;
+            border-radius: 16px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+
+        .card h3 {
+            color: #6b7280;
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .normal {
+            color: #15803d;
+        }
+
+        .high {
+            color: #dc2626;
+        }
+
+        .medium {
+            color: #d97706;
+        }
+
+        .warning {
+            border-left: 5px solid #dc2626;
+            margin-bottom: 12px;
+        }
+
+        .warning h3 {
+            color: #dc2626;
+        }
+
+        .recommendation {
+            background: #fff7ed;
+            border-left: 5px solid #f97316;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        @media (max-width: 800px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>🩺 AI Elder-Care Monitor</h1>
+        <p class="subtitle">
+            Personalized monitoring, anomaly detection and caregiver escalation
+        </p>
+    </header>
+
+    <div id="loading" class="loading">
+        Loading elder information...
+    </div>
+
+    <div id="dashboard" style="display:none;">
+
+        <div class="grid">
+
+            <div class="card">
+                <h3>Elder</h3>
+                <div id="personName" class="value"></div>
+                <p id="personAge"></p>
+            </div>
+
+            <div class="card">
+                <h3>Current Status</h3>
+                <div id="status" class="value"></div>
+            </div>
+
+            <div class="card">
+                <h3>Risk Trend</h3>
+                <div id="trend" class="value"></div>
+            </div>
+
+        </div>
+
+        <div class="grid">
+
+            <div class="card">
+                <h3>Latest Check-in</h3>
+                <div id="checkinDate" class="value"></div>
+                <p id="sentiment"></p>
+                <p id="latency"></p>
+            </div>
+
+            <div class="card">
+                <h3>Latest Anomaly</h3>
+                <div id="anomalyScore" class="value"></div>
+                <p id="anomalyReason"></p>
+            </div>
+
+            <div class="card recommendation">
+                <h3>Caregiver Recommendation</h3>
+                <p id="recommendation"></p>
+            </div>
+            <div id="alertCard" class="card" style="display:none;">
+    <h3>🚨 CAREGIVER ALERT</h3>
+    <div id="alertLevel" class="value high"></div>
+    <p id="alertReason"></p>
+    <p id="alertAction"></p>
+</div>
+
+        </div>
+
+        <div class="card">
+
+            <h2>⚠️ Recent Warnings</h2>
+
+            <div id="warnings" style="margin-top:20px;"></div>
+
+        </div>
+        <div id="lastAlert" class="card" style="display:none; border-left:5px solid #dc2626;">
+
+    <h2>🚨 Last High-Risk Event</h2>
+
+    <p id="lastAlertDate"></p>
+
+    <p id="lastAlertScore"></p>
+
+    <p id="lastAlertReason"></p>
+
+    <p id="lastAlertLevel"></p>
+
+</div>
+
+    </div>
+
+</div>
+
+<script>
+
+async function loadDashboard() {
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:8000/persons/1/dashboard"
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to load dashboard");
+        }
+
+        const data = await response.json();
+
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+
+        // Person
+        document.getElementById("personName").textContent =
+            data.person.name;
+
+        document.getElementById("personAge").textContent =
+            "Age: " + data.person.age;
+
+        // Status
+        const statusElement =
+            document.getElementById("status");
+
+        statusElement.textContent =
+            data.current_status.toUpperCase();
+
+        statusElement.className =
+            "value " + data.current_status;
+
+        // Risk trend
+      document.getElementById("trend").textContent =
+    data.summary
+        ? data.summary.risk_trend
+        : "unknown";
+
+        // Latest check-in
+        document.getElementById("checkinDate").textContent =
+            data.latest_check_in.date;
+
+        document.getElementById("sentiment").textContent =
+            "Sentiment: " +
+            data.latest_check_in.sentiment_score;
+
+        document.getElementById("latency").textContent =
+            "Response latency: " +
+            data.latest_check_in.response_latency_seconds +
+            " seconds";
+
+        // Anomaly
+        if (data.latest_anomaly) {
+
+            document.getElementById("anomalyScore").textContent =
+                data.latest_anomaly.score;
+
+            document.getElementById("anomalyReason").textContent =
+                data.latest_anomaly.reason;
+
+        } else {
+
+            document.getElementById("anomalyScore").textContent =
+                "None";
+
+            document.getElementById("anomalyReason").textContent =
+                "No anomaly detected.";
+
+        }
+
+        // Recommendation
+        document.getElementById("recommendation").textContent =
+            data.recommendation;
+            // High-risk caregiver alert
+
+if (
+    data.latest_escalation &&
+    data.latest_escalation.level === "high"
+) {
+
+    document.getElementById("alertCard").style.display = "block";
+
+    document.getElementById("alertLevel").textContent =
+        "HIGH RISK";
+
+    document.getElementById("alertReason").textContent =
+        "Reason: " + data.latest_anomaly.reason;
+
+    document.getElementById("alertAction").textContent =
+        "Action: " + data.latest_escalation.action;
+}
+// Last high-risk event
+
+if (data.recent_warnings.length > 0) {
+
+    const warning = data.recent_warnings[0];
+
+    document.getElementById("lastAlert").style.display = "block";
+
+    document.getElementById("lastAlertDate").textContent =
+        "Date: " + warning.date;
+
+    document.getElementById("lastAlertScore").textContent =
+        "Anomaly score: " + warning.anomaly_score;
+
+    document.getElementById("lastAlertReason").textContent =
+        "Reason: " + warning.reason;
+
+    document.getElementById("lastAlertLevel").textContent =
+        "Escalation: " +
+        warning.escalation_level.toUpperCase();
+}
+        // Warnings
+        const warningsContainer =
+            document.getElementById("warnings");
+
+        warningsContainer.innerHTML = "";
+
+        if (data.recent_warnings.length === 0) {
+
+            warningsContainer.innerHTML =
+                "<p>No recent warnings.</p>";
+
+        } else {
+
+            data.recent_warnings.forEach(warning => {
+
+                const div = document.createElement("div");
+
+                div.className = "card warning";
+
+                div.innerHTML = `
+                    <h3>
+                        ${warning.escalation_level.toUpperCase()}
+                        — ${warning.date}
+                    </h3>
+
+                    <p>
+                        Anomaly score:
+                        ${warning.anomaly_score}
+                    </p>
+
+                    <p>
+                        ${warning.reason}
+                    </p>
+                `;
+
+                warningsContainer.appendChild(div);
+
+            });
+
+        }
+
+    } catch (error) {
+
+        document.getElementById("loading").textContent =
+            "Unable to connect to the AI Elder-Care API.";
+
+        console.error(error);
+
+    }
+
+}
+
+loadDashboard();
+
+</script>
+
+</body>
+</html>
