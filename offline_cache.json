@@ -1,0 +1,16 @@
+{
+  "test": {
+    "cached_at": "2026-08-17T22:12:32.068201",
+    "data": {
+      "message": "Offline demo data",
+      "status": "healthy"
+    }
+  },
+  "caregiver_service_demo": {
+    "cached_at": "2026-08-17T22:17:26.361903",
+    "data": {
+      "message": "Live caregiver service response",
+      "status": "available"
+    }
+  }
+}
